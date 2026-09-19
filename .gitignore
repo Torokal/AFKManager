@@ -1,0 +1,16 @@
+# Build output
+bin/
+obj/
+dist/
+*.dll
+*.exe
+*.pdb
+
+# Local paths to your Valheim / BepInEx installation
+LocalPaths.props
+
+# Logs / editors
+*.log
+.vs/
+.vscode/
+.idea/

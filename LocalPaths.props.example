@@ -1,0 +1,7 @@
+<Project>
+  <!-- Copy to LocalPaths.props (git-ignored) and point at YOUR local installation. Game files are never committed. -->
+  <PropertyGroup>
+    <ValheimManaged>C:\path\to\Valheim dedicated server\valheim_server_Data\Managed</ValheimManaged>
+    <BepInExCore>C:\path\to\Valheim dedicated server\BepInEx\core</BepInExCore>
+  </PropertyGroup>
+</Project>
