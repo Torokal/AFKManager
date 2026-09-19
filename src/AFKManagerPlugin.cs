@@ -11,7 +11,7 @@ namespace AFKManager
     {
         public const string PluginGuid = "torokal.afkmanager";
         public const string PluginName = "AFKManager";
-        public const string PluginVersion = "0.1.0";
+        public const string PluginVersion = "0.2.0";
 
         static AfkService _service;
         AFKConfig _config;
@@ -27,6 +27,7 @@ namespace AFKManager
             AnnouncementService announcer = new AnnouncementService(_config, Logger);
             _service = new AfkService(_config, Logger, announcer);
             SleepIntegration.TryEnable(_service, _config, Logger);
+            RaidIntegration.TryEnable(_service, _config, Logger);
             Logger.LogInfo(PluginName + " " + PluginVersion + " loaded (server-side only; does nothing on clients).");
         }
 

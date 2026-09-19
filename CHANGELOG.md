@@ -2,6 +2,12 @@
 
 All notable changes to AFKManager are documented here. The project follows [Semantic Versioning](https://semver.org/).
 
+## 0.2.0
+
+- New: AFK-aware random raids (`[Raids] ExcludeAfkFromRandomRaids`, default on). A new vanilla random raid does not start in
+  an area where every player is AFK. An active player in the area still allows the raid, running raids are never
+  cancelled, and boss, scripted and admin-started events are not affected. Server-side only.
+
 ## 0.1.0
 
 Initial release.

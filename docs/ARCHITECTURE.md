@@ -23,7 +23,8 @@ compatibility with other mods.
 | `src/PlayerAfkState.cs` | In-memory state of one connected session, keyed by `ZNetPeer.m_uid`. Never persisted. |
 | `src/AfkService.cs` | The detector. No Harmony patches. |
 | `src/AnnouncementService.cs` | Chat and notification announcements, sent on state transitions only. No Harmony patches. |
-| `src/SleepIntegration.cs` | Optional sleep module: the only Harmony patch in the project. |
+| `src/SleepIntegration.cs` | Optional sleep module: one Harmony Postfix. |
+| `src/RaidIntegration.cs` | Optional raid module: one Harmony Postfix. |
 
 ## Detection loop
 
@@ -97,8 +98,27 @@ Because a Postfix still runs when another mod's Prefix skips the original, this 
 same method. If the method is missing in a future game version, the module disables itself with a warning and AFK
 detection keeps working.
 
-## Game members the plugin depends on
+## Raid module
 
+Vanilla starts random events on the server from two places in `RandEventSystem`: the periodic roll (`StartRandomEvent` →
+`GetPossibleRandomEvents`) and the per-event "standalone" roll in `UpdateRandomEvent`. Both take their possible raid centres
+from `GetValidEventPoints(RandomEvent, ...)`, which returns one point per eligible player, at that player's position
+(`ZNetPeer.m_refPos`), after the biome, base and key checks. Boss and forced events (`SetForcedEvent`) and events started by
+name (`SetRandomEventByName`: the `event` command, other mods) never call it.
+
+The module is one Harmony Postfix on `GetValidEventPoints`, with its own Harmony id. It removes a point from the returned
+list when at least one connected player is inside that event's own area around the point (horizontal distance below
+`RandomEvent.m_eventRange`, the test vanilla uses for the event area) and every such player is AFK.
+
+- One active player in the area keeps the point, so an AFK player can never shield active players.
+- Unknown or not yet initialized sessions are not AFK and keep a point eligible.
+- Random and forced events are told apart by the code path, not by event names; there is nothing to configure.
+- Running events are never inspected or cancelled; the module does not reference the current event at all.
+- It runs only when the game evaluates a random event: O(candidate points × connected players), no allocations.
+- If the method is missing in a future game version, the module disables itself with a warning and everything else keeps
+  working. A mod that replaces vanilla's random-event selection may bypass it.
+
+## Game members the plugin depends on
 Useful when checking a new Valheim version.
 
 | Area | Members |
@@ -109,3 +129,4 @@ Useful when checking a new Valheim version.
 | Notification | `ZRoutedRpc.InvokeRoutedRPC`, `ZRoutedRpc.Everybody`, RPC `ShowMessage`, `MessageHud.MessageType.TopLeft` |
 | Chat | `ZNet.GetPlayerList()`, `ZNet.PlayerInfo`, `ZRpc.Invoke`, `ZRpc.IsConnected()`, `ZPackage` (`Write`, `Size`, `SetPos`, `ReadInt`), `ZDOID.None`, `UserInfo`, `Talker.Type.Normal`, `Splatform.PlatformUserID(string)`; by reflection with fallbacks: `ZNet.SendPlayerList()`, `ZNet.WritePlayerInfo(List<ZNet.PlayerInfo>)` |
 | Sleep | `Game.EverybodyIsTryingToSleep()` |
+| Raids | `RandEventSystem.GetValidEventPoints(RandomEvent, ...)` (private, by name), `RandomEvent.m_eventRange`, `RandomEvent.m_name`, `ZNetPeer.m_refPos` |

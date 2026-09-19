@@ -1,6 +1,6 @@
 {
   "name": "AFKManager",
-  "version_number": "0.1.0",
+  "version_number": "0.2.0",
   "website_url": "https://github.com/Torokal/AFKManager",
   "description": "Server-side AFK detection, announcements, and AFK-aware sleep management for Valheim dedicated servers.",
   "dependencies": [

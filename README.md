@@ -3,7 +3,7 @@
 Server-side AFK detection for **Valheim dedicated servers**.
 
 AFKManager notices when a connected player has gone idle, tells everyone (`Toro is now AFK.` / `Toro is no longer AFK.`)
-and, optionally, stops AFK players from blocking the night skip when everyone else is in bed.
+and, optionally, stops AFK players from blocking the night skip and keeps new random raids away from AFK-only bases.
 
 ## Features
 
@@ -20,6 +20,7 @@ and, optionally, stops AFK players from blocking the night skip when everyone el
   - in the normal Valheim chat window (sender `AFKManager`)
   - as a notification in the top-left message feed
 - Optional AFK-aware sleep handling
+- Optional AFK-aware raids: new random raids do not start where everyone is AFK
 - Extremely low overhead: a few values per connected player every few seconds, no world scans
 
 ## Installation
@@ -88,8 +89,23 @@ This is a single small Harmony Postfix on the server's `Game.EverybodyIsTryingTo
 "yes". It coexists with other mods that hook the same method; it has no effect if another mod replaces the whole vanilla
 sleep loop. It can be switched off without affecting AFK detection.
 
-## Configuration
+## AFK-aware raids (optional)
 
+With `ExcludeAfkFromRandomRaids = true`, a **new random raid** does not start in an area where every player is AFK.
+
+- The area is the raid's own vanilla radius around the player the game would have picked. If at least one **active**
+  player is inside it, the raid is allowed as usual, so an AFK character can never shield active players.
+- If every player who could be targeted is AFK, no random raid starts.
+- A raid that has already started is **never cancelled** when somebody goes AFK. Standing still does not make a raid go away.
+- Boss events, scripted events and events started by an admin or another mod by name (for example the `event` command)
+  are not affected.
+- Completely server-side: one small Harmony Postfix on the server's `RandEventSystem.GetValidEventPoints`, the place
+  where vanilla collects the possible raid targets. It does nothing except when the game evaluates a random event.
+
+Blocked raids are not announced (only logged with `DebugLogging = true`). A mod that replaces vanilla's random-event
+selection with its own system may not be affected by this setting.
+
+## Configuration
 `BepInEx/config/torokal.afkmanager.cfg`:
 
 ```ini
@@ -113,6 +129,9 @@ ReturnMessage = {player} is no longer AFK.
 [Gameplay]
 ExcludeAfkFromSleep = true
 
+[Raids]
+ExcludeAfkFromRandomRaids = true
+
 [Logging]
 DebugLogging = false
 ```
@@ -128,6 +147,7 @@ DebugLogging = false
 | `AnnounceInChat` / `AnnounceNotification` | `true` | Which channels are used. |
 | `AfkMessage` / `ReturnMessage` | see above | Message texts; `{player}` is replaced with the player's name. |
 | `ExcludeAfkFromSleep` | `true` | AFK players who are not in bed do not block the night skip. Needs a server restart to switch the hook on or off. |
+| `ExcludeAfkFromRandomRaids` | `true` | New random raids do not start in an AFK-only player area; running raids are never cancelled. Needs a server restart to switch the hook on or off. |
 | `DebugLogging` | `false` | Log activity reasons, transitions and a summary of every check. |
 
 ## Compatibility

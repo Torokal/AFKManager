@@ -8,7 +8,7 @@ namespace AFKManager
     {
         const float DefaultAfkMinutes = 10f, DefaultInterval = 5f, DefaultMove = 0.5f, DefaultLook = 10f;
 
-        readonly ConfigEntry<bool> _enabled, _announceAfk, _announceReturn, _announceInChat, _announceNotification, _excludeFromSleep, _debug;
+        readonly ConfigEntry<bool> _enabled, _announceAfk, _announceReturn, _announceInChat, _announceNotification, _excludeFromSleep, _excludeFromRaids, _debug;
         readonly ConfigEntry<float> _afkAfterMinutes, _checkInterval, _moveThreshold, _lookThreshold;
         readonly ConfigEntry<string> _afkMessage, _returnMessage;
         readonly ManualLogSource _log;
@@ -51,6 +51,11 @@ namespace AFKManager
                 "When true, AFK players who are not in bed no longer prevent the night from being skipped. " +
                 "At least one player must still be in bed. Requires a server restart to fully enable/disable the hook.");
 
+            _excludeFromRaids = cfg.Bind("Raids", "ExcludeAfkFromRandomRaids", true,
+                "When enabled, a new vanilla random raid will not begin in an AFK-only player area. If an active player is present, " +
+                "the raid is allowed. Existing raids are never cancelled when players become AFK. Boss, scripted and admin-started " +
+                "events are not affected. Requires a server restart to fully enable/disable the hook.");
+
             _debug = cfg.Bind("Logging", "DebugLogging", false,
                 "Log activity reasons, AFK transitions and a short summary of every check. Leave off for normal play.");
         }
@@ -61,6 +66,7 @@ namespace AFKManager
         internal bool AnnounceInChat { get { return _announceInChat.Value; } }
         internal bool AnnounceNotification { get { return _announceNotification.Value; } }
         internal bool ExcludeAfkFromSleep { get { return _excludeFromSleep.Value; } }
+        internal bool ExcludeAfkFromRandomRaids { get { return _excludeFromRaids.Value; } }
         internal bool DebugLogging { get { return _debug.Value; } }
         internal string AfkMessage { get { return _afkMessage.Value; } }
         internal string ReturnMessage { get { return _returnMessage.Value; } }
