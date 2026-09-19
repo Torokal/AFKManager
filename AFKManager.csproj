@@ -8,7 +8,7 @@
     <TargetFramework>net48</TargetFramework>
     <AssemblyName>AFKManager</AssemblyName>
     <RootNamespace>AFKManager</RootNamespace>
-    <Version>0.2.0</Version>
+    <Version>0.2.1</Version>
     <LangVersion>5</LangVersion>
     <Nullable>disable</Nullable>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>

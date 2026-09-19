@@ -2,6 +2,10 @@
 
 All notable changes to AFKManager are documented here. The project follows [Semantic Versioning](https://semver.org/).
 
+## 0.2.1
+
+- Package description now mentions AFK-aware raid protection. No functional changes.
+
 ## 0.2.0
 
 - New: AFK-aware random raids (`[Raids] ExcludeAfkFromRandomRaids`, default on). A new vanilla random raid does not start in
