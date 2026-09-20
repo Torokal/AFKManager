@@ -35,6 +35,7 @@ namespace AFKManager
         internal Vector3 LookReference;
         internal bool HasLookReference;
         internal int LastEmoteId;
+        internal string LastEmote = "";   // emote name (ZDOVars.s_emote); used only to spot the manual-AFK emote being started
         internal int LastEquipmentHash;
         internal int LastCrafting;
         internal bool WasInBed;

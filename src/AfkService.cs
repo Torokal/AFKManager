@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using BepInEx.Logging;
@@ -113,6 +114,7 @@ namespace AFKManager
             bool hasLook = lookTarget != Vector3.zero;
             Vector3 lookDir = hasLook ? (lookTarget - worldPos).normalized : Vector3.zero;
             int emoteId = zdo.GetInt(ZDOVars.s_emoteID, 0);
+            string emote = zdo.GetString(ZDOVars.s_emote, "");   // the emote's name, written by Player.StartEmote; "" while not emoting
             int crafting = zdo.GetInt(_craftingKey, 0);
             bool inBed = zdo.GetBool(ZDOVars.s_inBed, false);
             int equipment = 17;
@@ -120,6 +122,10 @@ namespace AFKManager
 
             ActivityReason reasons = ActivityReason.None;
             bool sameCharacter = state.Initialized && !state.NeedsBaseline && characterId == state.CharacterId;
+            // The configured "I am AFK" emote is the player's own request, never activity: entering it (or re-issuing it, which
+            // only bumps the counter) asks for AFK, and holding it must not keep them active either.
+            bool inManualAfkEmote = IsManualAfkEmote(emote);
+            bool manualAfk = sameCharacter && inManualAfkEmote && (emote != state.LastEmote || emoteId != state.LastEmoteId);
 
             if (!state.Initialized)
             {
@@ -130,7 +136,7 @@ namespace AFKManager
             else if (sameCharacter)
             {
                 if (inBed && !state.WasInBed) reasons |= ActivityReason.EnterBed;
-                if (emoteId != state.LastEmoteId) reasons |= ActivityReason.Emote;
+                if (emoteId != state.LastEmoteId && !inManualAfkEmote) reasons |= ActivityReason.Emote;
                 if (equipment != state.LastEquipmentHash) reasons |= ActivityReason.Equipment;
                 if (crafting != state.LastCrafting) reasons |= ActivityReason.CraftingStation;
 
@@ -163,6 +169,7 @@ namespace AFKManager
             state.LastWorldPosition = worldPos;
             state.LastPosition = position;                 // per-poll displacement (a cumulative anchor would trip on slope drift)
             state.LastEmoteId = emoteId;
+            state.LastEmote = emote;
             state.LastEquipmentHash = equipment;
             state.LastCrafting = crafting;
             state.WasInBed = inBed;
@@ -172,7 +179,31 @@ namespace AFKManager
                 state.HasLookReference = true;
             }
 
-            if (reasons != ActivityReason.None) MarkActivity(state, reasons, now);
+            // The request wins over everything seen in the same poll (the player was still walking when they typed it); the baselines
+            // above were just refreshed, so the next poll measures from here and stale deltas cannot undo it.
+            if (manualAfk) MarkManualAfk(state, now);
+            else if (reasons != ActivityReason.None) MarkActivity(state, reasons, now);
+        }
+
+        /// <summary>True for the emote an admin configured as "mark me AFK" (server-side only: the name comes from the player's own ZDO).</summary>
+        bool IsManualAfkEmote(string emote)
+        {
+            string configured = _config.ManualAfkEmote;
+            return emote.Length != 0 && configured.Length != 0 && string.Equals(emote, configured, StringComparison.OrdinalIgnoreCase);
+        }
+
+        /// <summary>ACTIVE -> AFK on the player's own request. Same transition machinery as the timeout, so exactly one announcement.</summary>
+        void MarkManualAfk(PlayerAfkState state, float now)
+        {
+            state.LastActivityTime = now;                  // keeps the timer coherent for the ACTIVE period after they return
+            if (state.IsAfk)
+            {
+                if (_config.DebugLogging) _log.LogInfo(state.PlayerName + " manual AFK emote while already AFK: ignored");
+                return;                                    // no second announcement, no state change
+            }
+            state.IsAfk = true;
+            if (_config.DebugLogging) _log.LogInfo(state.PlayerName + " ACTIVE -> AFK (manual emote)");
+            _announcer.AnnounceAfk(state.PlayerName, state.LastWorldPosition);
         }
 
         /// <summary>Single place where activity is recorded and AFK -> ACTIVE happens (at most once per poll per player).</summary>

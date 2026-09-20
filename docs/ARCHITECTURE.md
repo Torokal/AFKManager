@@ -42,6 +42,7 @@ Every `CheckIntervalSeconds` (default 5 s), on the main thread, for each ready p
    | Equipment | the nine visible-equipment keys | combined hash changed |
    | Crafting station | animator int `crafting` (`438569 + Animator.StringToHash("crafting")`) | value changed (open/close) |
    | Bed | `s_inBed` | false → true |
+   | Manual AFK | `s_emote` (emote name), `s_emoteID` | the configured emote started or re-issued ⇒ AFK, and never activity |
 
 3. Neutral events only re-baseline and never count as activity: first spawn of the session, respawn / new character id,
    attaching to or leaving a parent (boarding, bed), leaving a bed. Movement and look are skipped for the check in which
@@ -118,8 +119,34 @@ list when at least one connected player is inside that event's own area around t
 - If the method is missing in a future game version, the module disables itself with a warning and everything else keeps
   working. A mod that replaces vanilla's random-event selection may bypass it.
 
-## Game members the plugin depends on
-Useful when checking a new Valheim version.
+## Manual AFK (emote)
+
+A player marks themselves AFK by typing a vanilla emote in the chat window (`ManualAfkEmote`, default `rest`). The detector
+already reads the player's ZDO, and `ZDOVars.s_emote` holds the emote's lowercase name, written by `Player.StartEmote` and
+cleared by `StopEmote`. In the normal poll:
+
+- starting that emote — or re-issuing it, which only bumps `s_emoteID` — marks the session AFK;
+- while it is the current emote, the ordinary Emote activity signal is suppressed, so holding or repeating it never counts as
+  activity;
+- the request is applied after the baselines of that poll are stored, so movement or look changes from *before* the command
+  cannot flip the player back to active on the next poll;
+- leaving the emote (moving) clears `s_emote` and bumps the counter, which is ordinary activity, so the player returns to
+  active with the usual single announcement;
+- it goes through the same transition code as an automatic timeout, so there is exactly one announcement either way, and a
+  repeat while already AFK does nothing.
+
+Two properties fall out of using character state instead of a chat command. Identity is authoritative without any sender
+mapping, because a client can only write its own character's ZDO — one player cannot mark another AFK. And it works from any
+client on any store, because nothing platform-specific is involved.
+
+There is no `/afk` command: a vanilla client silently discards slash commands it does not know
+(`Terminal.TryRunCommand(..., silentFail: true)`), so such a command never leaves the player's game. Vanilla chat does not reach
+a dedicated server either — with a platform relations provider the client addresses each message to the other *players*. The
+only chat-system message a dedicated server receives from a client is a map ping (`Chat.SendPing` → routed `ChatMessage` to
+Everybody, type `Ping`, empty text). Reading ordinary chat would require patching the routed-RPC dispatcher, which this project
+does not do.
+
+## Game members the plugin depends onUseful when checking a new Valheim version.
 
 | Area | Members |
 |---|---|
@@ -129,4 +156,5 @@ Useful when checking a new Valheim version.
 | Notification | `ZRoutedRpc.InvokeRoutedRPC`, `ZRoutedRpc.Everybody`, RPC `ShowMessage`, `MessageHud.MessageType.TopLeft` |
 | Chat | `ZNet.GetPlayerList()`, `ZNet.PlayerInfo`, `ZRpc.Invoke`, `ZRpc.IsConnected()`, `ZPackage` (`Write`, `Size`, `SetPos`, `ReadInt`), `ZDOID.None`, `UserInfo`, `Talker.Type.Normal`, `Splatform.PlatformUserID(string)`; by reflection with fallbacks: `ZNet.SendPlayerList()`, `ZNet.WritePlayerInfo(List<ZNet.PlayerInfo>)` |
 | Sleep | `Game.EverybodyIsTryingToSleep()` |
+| Manual AFK | `ZDOVars.s_emote` (string; Player.StartEmote/StopEmote) |
 | Raids | `RandEventSystem.GetValidEventPoints(RandomEvent, ...)` (private, by name), `RandomEvent.m_eventRange`, `RandomEvent.m_name`, `ZNetPeer.m_refPos` |

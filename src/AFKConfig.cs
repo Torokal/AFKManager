@@ -10,7 +10,7 @@ namespace AFKManager
 
         readonly ConfigEntry<bool> _enabled, _announceAfk, _announceReturn, _announceInChat, _announceNotification, _excludeFromSleep, _excludeFromRaids, _debug;
         readonly ConfigEntry<float> _afkAfterMinutes, _checkInterval, _moveThreshold, _lookThreshold;
-        readonly ConfigEntry<string> _afkMessage, _returnMessage;
+        readonly ConfigEntry<string> _afkMessage, _returnMessage, _manualAfkEmote;
         readonly ManualLogSource _log;
         bool _warnedInvalid;
 
@@ -47,6 +47,14 @@ namespace AFKManager
             _returnMessage = cfg.Bind("Announcements", "ReturnMessage", "{player} is no longer AFK.",
                 "Text shown when a player returns. {player} is replaced with the player's name.");
 
+            _manualAfkEmote = cfg.Bind("Manual AFK", "ManualAfkEmote", "rest",
+                "Emote a player can use to mark THEMSELVES AFK right away, typed in the chat window as /<emote> (default: /rest). " +
+                "Starting it does not count as activity; any normal activity (moving, looking around, another emote, ...) makes the " +
+                "player active again. Valheim does not send made-up commands such as /afk to the server, but it does send emotes, so " +
+                "this works from a completely vanilla client on any platform. A player in a bed cannot emote, so sleeping never " +
+                "triggers it. Emote names: wave, sit, challenge, cheer, nonono, thumbsup, point, blowkiss, bow, cower, cry, despair, " +
+                "flex, comehere, headbang, kneel, laugh, roar, shrug, dance, relax, toast, rest, vibe, loveyou. Empty = disabled.");
+
             _excludeFromSleep = cfg.Bind("Gameplay", "ExcludeAfkFromSleep", true,
                 "When true, AFK players who are not in bed no longer prevent the night from being skipped. " +
                 "At least one player must still be in bed. Requires a server restart to fully enable/disable the hook.");
@@ -70,6 +78,7 @@ namespace AFKManager
         internal bool DebugLogging { get { return _debug.Value; } }
         internal string AfkMessage { get { return _afkMessage.Value; } }
         internal string ReturnMessage { get { return _returnMessage.Value; } }
+        internal string ManualAfkEmote { get { string v = _manualAfkEmote.Value; return v == null ? "" : v.Trim(); } }
 
         internal float AfkAfterSeconds { get { return Safe(_afkAfterMinutes, DefaultAfkMinutes, 0.1f, 1440f) * 60f; } }
         internal float CheckIntervalSeconds { get { return Safe(_checkInterval, DefaultInterval, 1f, 60f); } }

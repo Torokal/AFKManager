@@ -11,7 +11,7 @@ namespace AFKManager
     {
         public const string PluginGuid = "torokal.afkmanager";
         public const string PluginName = "AFKManager";
-        public const string PluginVersion = "0.2.1";
+        public const string PluginVersion = "0.3.0";
 
         static AfkService _service;
         AFKConfig _config;

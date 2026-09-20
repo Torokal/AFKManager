@@ -2,6 +2,16 @@
 
 All notable changes to AFKManager are documented here. The project follows [Semantic Versioning](https://semver.org/).
 
+## 0.3.0
+
+- New: manual AFK. A player can mark themselves AFK at once by typing an emote in the chat window (`[Manual AFK]
+  ManualAfkEmote`, default `/rest`). It only ever affects the player who typed it, repeating it does nothing, and any normal
+  activity returns them to active. Sleeping in a bed cannot trigger it.
+- Verified on a crossplay (`-crossplay` / PlayFab) dedicated server: detection, manual AFK, chat announcements and
+  notifications all work there. PC Game Pass / Microsoft Store and console players never install anything, but their server
+  must be started with `-crossplay`; see the README.
+- No new Harmony patches, and no change to the existing detection, announcement, sleep or raid behaviour.
+
 ## 0.2.1
 
 - Package description now mentions AFK-aware raid protection. No functional changes.

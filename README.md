@@ -21,6 +21,7 @@ and, optionally, stops AFK players from blocking the night skip and keeps new ra
   - as a notification in the top-left message feed
 - Optional AFK-aware sleep handling
 - Optional AFK-aware raids: new random raids do not start where everyone is AFK
+- Manual AFK: a player can mark themselves AFK straight away with a chat emote (default /rest)
 - Extremely low overhead: a few values per connected player every few seconds, no world scans
 
 ## Installation
@@ -62,7 +63,8 @@ activity and never mark anyone AFK. The AFK timer starts when the player's chara
 login, and it is paused while a player is dead or loading.
 
 Chat, attacks, jumping, eating, building, inventory management, the map and other menus do **not** count. They are either
-invisible to a dedicated server or would need invasive hooks that hurt compatibility with other mods.
+invisible to a dedicated server or would need invasive hooks that hurt compatibility with other mods. (Valheim does not send chat
+to a dedicated server at all — see [Manual AFK](#manual-afk).)
 
 ## Announcements
 
@@ -105,8 +107,43 @@ With `ExcludeAfkFromRandomRaids = true`, a **new random raid** does not start in
 Blocked raids are not announced (only logged with `DebugLogging = true`). A mod that replaces vanilla's random-event
 selection with its own system may not be affected by this setting.
 
-## Configuration
-`BepInEx/config/torokal.afkmanager.cfg`:
+## Manual AFK
+
+A player who is about to step away can mark themselves AFK immediately by typing an emote in the chat window:
+
+```
+/rest
+```
+
+- It marks **only the player who typed it**. The server reads the emote from that player's own character, so nobody can put
+  someone else in AFK.
+- Starting the emote does not count as activity, and neither does repeating it.
+- Any normal activity (moving, looking around, another emote, changing gear, a crafting station, going to bed) makes the player
+  active again as usual, with the normal return announcement.
+- Sleep and raid handling use the manual AFK state immediately, exactly like an automatic one.
+- Sleeping in a bed can never trigger it: Valheim does not allow emotes while a player is attached to a bed or chair.
+- The emote is configurable (`ManualAfkEmote`), and setting it to an empty value disables the feature.
+
+**Why an emote and not `/afk`?** A vanilla Valheim client silently throws away slash commands it does not know, so `/afk` never
+leaves the player's own game, and the client does not send ordinary chat to a dedicated server either (it sends it straight to
+the other players). Emotes, on the other hand, are part of the character state that every client already syncs to the server.
+So an emote is the only way a vanilla client — on any platform — can tell a server-side mod "I am AFK", which is why AFKManager
+uses one instead of inventing a command that would require every player to install something.
+
+## Crossplay and PC Game Pass
+
+AFKManager runs **only on the dedicated server**, so players never install it, whatever platform they are on.
+
+- Whether a PC Game Pass / Microsoft Store or console player can join at all is decided by Valheim, not by AFKManager: the
+  dedicated server has to be started with `-crossplay`. A Steam-only server cannot accept those players with or without this mod.
+- On a crossplay (PlayFab) server AFKManager has been **runtime tested**: detection, manual AFK, chat announcements and
+  notifications all work (tested with a vanilla Steam client joining by join code).
+- Everything except the chat announcement is plain server state and does not depend on the player's store platform.
+  The chat line relies on how a client checks an unknown sender; that is verified for Steam clients. For Microsoft Store /
+  console clients it is expected to work but has **not** been verified yet — if it turned out not to, the top-left
+  notification would still be shown, and `AnnounceInChat = false` turns the chat line off.
+
+## Configuration`BepInEx/config/torokal.afkmanager.cfg`:
 
 ```ini
 [General]
@@ -125,6 +162,9 @@ AnnounceInChat = true
 AnnounceNotification = true
 AfkMessage = {player} is now AFK.
 ReturnMessage = {player} is no longer AFK.
+
+[Manual AFK]
+ManualAfkEmote = rest
 
 [Gameplay]
 ExcludeAfkFromSleep = true
@@ -146,6 +186,7 @@ DebugLogging = false
 | `AnnounceAfk` / `AnnounceReturn` | `true` | Announce the two transitions. |
 | `AnnounceInChat` / `AnnounceNotification` | `true` | Which channels are used. |
 | `AfkMessage` / `ReturnMessage` | see above | Message texts; `{player}` is replaced with the player's name. |
+| `ManualAfkEmote` | `rest` | Emote a player types in chat to mark themselves AFK at once. Empty = off. Any emote name works (wave, sit, relax, rest, …). |
 | `ExcludeAfkFromSleep` | `true` | AFK players who are not in bed do not block the night skip. Needs a server restart to switch the hook on or off. |
 | `ExcludeAfkFromRandomRaids` | `true` | New random raids do not start in an AFK-only player area; running raids are never cancelled. Needs a server restart to switch the hook on or off. |
 | `DebugLogging` | `false` | Log activity reasons, transitions and a summary of every check. |
@@ -158,7 +199,8 @@ DebugLogging = false
 | Tested loader | BepInEx 5.4.23.5 (BepInExPack Valheim 5.4.2350) |
 | Dependencies | BepInEx only (HarmonyX ships with it). No Jotunn, no ServerSync. |
 | Other mods | Runs on a live dedicated server alongside Server_devcommands and other server-side mods. Chat announcements keep the "Server" chat entry Server_devcommands can add. |
-| Clients | Tested with Steam clients. Crossplay/console clients are untested: if the chat line does not show up there, the notification still does. |
+| Backends | Tested on a Steam dedicated server and on a crossplay (-crossplay / PlayFab) dedicated server. |
+| Clients | Tested with Steam clients. Microsoft Store / console clients are untested: if the chat line does not show up there, the notification still does. |
 
 Other game versions and mod combinations may work but are not tested. For other server-side mods,
 `AFKManager.AFKManagerPlugin.IsAfk(long peerUid)` returns whether a connected session is currently AFK.
