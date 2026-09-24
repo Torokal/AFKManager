@@ -2,6 +2,11 @@
 
 All notable changes to AFKManager are documented here. The project follows [Semantic Versioning](https://semver.org/).
 
+## 0.3.1
+
+- Rewritten description: what AFKManager does comes first, the technical details follow. Added a short trailer.
+  No functional changes (the plugin DLL is the same as in 0.3.0).
+
 ## 0.3.0
 
 - New: manual AFK. A player can mark themselves AFK at once by typing an emote in the chat window (`[Manual AFK]

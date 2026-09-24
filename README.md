@@ -1,32 +1,33 @@
 # AFKManager
 
-Server-side AFK detection for **Valheim dedicated servers**.
+[![AFKManager trailer: click to watch (20 s)](https://raw.githubusercontent.com/Torokal/AFKManager/main/docs/media/AFKManager-trailer-poster.jpg)](https://github.com/Torokal/AFKManager/blob/main/docs/media/AFKManager-trailer.mp4)
 
-AFKManager notices when a connected player has gone idle, tells everyone (`Toro is now AFK.` / `Toro is no longer AFK.`)
-and, optionally, stops AFK players from blocking the night skip and keeps new random raids away from AFK-only bases.
+**One idle player shouldn’t hold your whole Valheim server hostage.**
 
-## Features
+AFKManager is a plugin for Valheim **dedicated servers**. It notices when a player has stepped away, tells everyone, and
+makes sure the AFK player doesn’t get in the way of the people who are still playing. It is installed **only on the
+server**: players join with a completely vanilla game and install nothing.
 
-- True dedicated-server-side AFK detection: vanilla clients do not need AFKManager (or any mod) installed
-- Configurable AFK timeout (default 10 minutes)
-- Activity detection from data the server already receives:
-  - movement, measured **relative to the ship** while aboard
-  - look direction
-  - emotes
-  - equipment changes
-  - crafting-station open/close
-  - getting into bed
-- AFK and return announcements
-  - in the normal Valheim chat window (sender `AFKManager`)
-  - as a notification in the top-left message feed
-- Optional AFK-aware sleep handling
-- Optional AFK-aware raids: new random raids do not start where everyone is AFK
-- Manual AFK: a player can mark themselves AFK straight away with a chat emote (default /rest)
-- Extremely low overhead: a few values per connected player every few seconds, no world scans
+## What it does
+
+- **Everyone knows who is AFK.** When a player goes idle, the server says so in chat and in the top-left message feed:
+  `AFKManager: Toro is now AFK.` — and `Toro is no longer AFK.` when they are back.
+- **AFK players don’t block sleep.** The night skips as soon as everyone who is still playing is in bed. A player idling
+  in the base no longer keeps the whole server awake. (At least one player still has to be in bed.)
+- **No new random raids on AFK-only bases.** If every player in a raid area is AFK, no new random raid starts there.
+  An active teammate nearby keeps raids working as usual, and a raid that is already running is never cancelled.
+- **Going AFK on purpose.** Type `/rest` in chat before stepping away and you are marked AFK straight away.
+- **A moving ship is not activity.** Movement is measured relative to the ship, so a passenger standing still on a sailing
+  ship still counts as idle.
+- **Nothing for players to install.** No BepInEx, no mod, no config on the client. Works on Steam and crossplay servers.
+
+Everything is on by default, with a 10-minute AFK timeout. Each part can be switched off on its own.
 
 ## Installation
 
-**Mod manager / hosting panel:** install `AFKManager` from Thunderstore on the **server**. The package depends on
+AFKManager goes on the **server** only.
+
+**Mod manager / hosting panel:** install `AFKManager` from Thunderstore on the server. The package depends on
 [BepInExPack Valheim](https://thunderstore.io/c/valheim/p/denikson/BepInExPack_Valheim/).
 
 **Manual:**
@@ -35,9 +36,30 @@ and, optionally, stops AFK players from blocking the night skip and keeps new ra
 2. Copy the DLL to `BepInEx/plugins/AFKManager/AFKManager.dll` on the server.
 3. Restart the server.
 
-The configuration file is created on the first start.
+Players don’t need to do anything. Installing it on a client does nothing.
 
-## Server side
+## Main settings
+
+`BepInEx/config/torokal.afkmanager.cfg` is created on the first start. The settings most servers care about:
+
+| Setting | Default | What it does |
+|---|---|---|
+| `AfkAfterMinutes` | `10` | How long a player can be idle before they are marked AFK. |
+| `AnnounceInChat` / `AnnounceNotification` | `true` | Announce in the chat window and/or the top-left message feed. |
+| `ExcludeAfkFromSleep` | `true` | AFK players don’t block the night skip. |
+| `ExcludeAfkFromRandomRaids` | `true` | No new random raids in areas where every player is AFK. |
+| `ManualAfkEmote` | `rest` | The emote players type to go AFK on purpose. Empty = off. |
+
+All settings are listed under [Full configuration](#full-configuration).
+
+---
+
+## How it works
+
+The rest of this page explains the details: what counts as activity, exactly when sleep and raids are affected, and why
+players need nothing installed.
+
+### Server side
 
 AFKManager is a BepInEx plugin that runs **on the dedicated server**, so the server needs BepInEx. Players join with a
 completely vanilla game: no BepInEx, no AFKManager, no configuration. AFKManager adds no custom network messages, no
@@ -46,7 +68,7 @@ the server, and it announces through messages every vanilla client already under
 
 Installing it on a client does nothing. On a player-hosted (non-dedicated) game the host is not tracked.
 
-## What counts as activity
+### What counts as activity
 
 | Activity | Notes |
 |---|---|
@@ -66,7 +88,7 @@ Chat, attacks, jumping, eating, building, inventory management, the map and othe
 invisible to a dedicated server or would need invasive hooks that hurt compatibility with other mods. (Valheim does not send chat
 to a dedicated server at all — see [Manual AFK](#manual-afk).)
 
-## Announcements
+### Announcements
 
 When a player becomes AFK or returns, everyone is told once, through two independent channels:
 
@@ -81,7 +103,7 @@ Nothing is announced on login, logout, death or respawn.
 Valheim shows every chat message also as a short floating text in the world; AFKManager places it above the player the
 message is about. The sender "AFKManager" is not a player, and no real player is impersonated.
 
-## Sleep handling (optional)
+### Sleep
 
 With `ExcludeAfkFromSleep = true`, AFK players who are **not** in bed are ignored by the "is everybody sleeping?" check.
 At least one player must actually be in bed, and players who are not AFK still have to go to bed as usual. If nobody is
@@ -91,7 +113,7 @@ This is a single small Harmony Postfix on the server's `Game.EverybodyIsTryingTo
 "yes". It coexists with other mods that hook the same method; it has no effect if another mod replaces the whole vanilla
 sleep loop. It can be switched off without affecting AFK detection.
 
-## AFK-aware raids (optional)
+### Random raids
 
 With `ExcludeAfkFromRandomRaids = true`, a **new random raid** does not start in an area where every player is AFK.
 
@@ -107,7 +129,7 @@ With `ExcludeAfkFromRandomRaids = true`, a **new random raid** does not start in
 Blocked raids are not announced (only logged with `DebugLogging = true`). A mod that replaces vanilla's random-event
 selection with its own system may not be affected by this setting.
 
-## Manual AFK
+### Manual AFK
 
 A player who is about to step away can mark themselves AFK immediately by typing an emote in the chat window:
 
@@ -130,7 +152,7 @@ the other players). Emotes, on the other hand, are part of the character state t
 So an emote is the only way a vanilla client — on any platform — can tell a server-side mod "I am AFK", which is why AFKManager
 uses one instead of inventing a command that would require every player to install something.
 
-## Crossplay and PC Game Pass
+### Crossplay and PC Game Pass
 
 AFKManager runs **only on the dedicated server**, so players never install it, whatever platform they are on.
 
@@ -143,7 +165,9 @@ AFKManager runs **only on the dedicated server**, so players never install it, w
   console clients it is expected to work but has **not** been verified yet — if it turned out not to, the top-left
   notification would still be shown, and `AnnounceInChat = false` turns the chat line off.
 
-## Configuration`BepInEx/config/torokal.afkmanager.cfg`:
+## Full configuration
+
+`BepInEx/config/torokal.afkmanager.cfg` (created on the first start):
 
 ```ini
 [General]
