@@ -1,6 +1,6 @@
 # AFKManager
 
-[![AFKManager trailer: click to watch (20 s)](https://raw.githubusercontent.com/Torokal/AFKManager/main/docs/media/AFKManager-trailer-poster.jpg)](https://github.com/Torokal/AFKManager/blob/main/docs/media/AFKManager-trailer.mp4)
+[![AFKManager trailer: click to watch (20 s)](https://raw.githubusercontent.com/Torokal/AFKManager/main/docs/media/AFKManager-trailer-poster.jpg)](https://github.com/Torokal/AFKManager/releases/tag/v0.3.1)
 
 **One idle player shouldn’t hold your whole Valheim server hostage.**
 
